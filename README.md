@@ -8,7 +8,7 @@ https://www.openssl.org
   4. `sudo update-ca-certificates`
   5. `masukkan sertifikat ke dalam browser`
 
-### Menghapus .crt (jika diperlukan)
+### Menghapus .crt (jika dibutuhkan)
   1. `sudo rm -rf /usr/local/share/ca-certificates/ca.crt`
   2. `sudo update-ca-certificates --fresh`
 

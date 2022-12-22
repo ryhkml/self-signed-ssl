@@ -1,0 +1,7 @@
+*.cnf
+*.csr
+*.pem
+
+.env
+
+note.txt

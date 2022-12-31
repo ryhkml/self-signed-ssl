@@ -8,7 +8,7 @@ https://www.openssl.org
 
 ### Validasi HTTPS (localhost)
   1. `sudo cp ./<HOSTNAME/DOMAIN>/ca.crt /usr/local/share/ca-certificates/ca.crt`
-  2. `sudo update-ca-certificates`
+  2. `sudo update-ca-certificates`\
       **Menghapus .crt (jika diperlukan)**
       2.1. `sudo rm -rf /usr/local/share/ca-certificates/ca.crt`
       2.2. `sudo update-ca-certificates --fresh`

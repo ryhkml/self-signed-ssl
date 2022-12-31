@@ -7,12 +7,12 @@ LINK="\033[4;34m"
 ERROR="\033[0;31m"
 NORMAL="\033[0m"
 
-# NAMA DOMAIN
-DOMAIN=$1
+# NAMA HOSTNAME ATAU DOMAIN
+HD=$1
 # BERAPA LAMA SERTIFIKAT AKAN VALID DALAM HARI
 DURATION=$2
 
-if [[ -z $DOMAIN || -z $DURATION ]]; then
+if [[ -z $HD || -z $DURATION ]]; then
   error "SEMUA ARGUMEN HARUS DIISI"
   exit 1
 fi
@@ -34,7 +34,7 @@ error() {
 
 throw_error() {
   error "TERJADI KESALAHAN"
-  rm -rf ./$DOMAIN
+  rm -rf ./$HD
   exit 1
 }
 
@@ -43,7 +43,7 @@ info "MULAI"
 
 openssl version
 
-mkdir $DOMAIN
+mkdir $HD
 
 echo
 info "BUAT PASSWORD PEM PHRASE, TUNGGU SEBENTAR..."
@@ -51,7 +51,7 @@ info "BUAT PASSWORD PEM PHRASE, TUNGGU SEBENTAR..."
 sleep 1s
 
 openssl genrsa -aes256 \
-  -out ./$DOMAIN/ca-key.pem \
+  -out ./$HD/ca-key.pem \
   4096 || throw_error
 
 echo
@@ -59,47 +59,50 @@ info "VERIFIKASI KEMBALI PASSWORD PEM PHRASE"
 
 openssl req -new -x509 -sha256 \
   -days $DURATION \
-  -key ./$DOMAIN/ca-key.pem \
-  -out ./$DOMAIN/ca.pem || throw_error
+  -key ./$HD/ca-key.pem \
+  -out ./$HD/ca.pem || throw_error
 
 openssl genrsa \
-  -out ./$DOMAIN/cert-key.pem \
+  -out ./$HD/cert-key.pem \
   4096 || throw_error
 
 openssl req -new -sha256 \
-  -subj "/CN=$DOMAIN" \
-  -key ./$DOMAIN/cert-key.pem \
-  -out ./$DOMAIN/cert.csr || throw_error
+  -subj "/CN=$HD" \
+  -key ./$HD/cert-key.pem \
+  -out ./$HD/cert.csr || throw_error
 
-echo "subjectAltName=DNS:$DOMAIN" > ./$DOMAIN/extfile.cnf
+echo "subjectAltName=DNS:$HD" > ./$HD/extfile.cnf
 
 echo
 info "OK, VERIFIKASI KEMBALI PASSWORD PEM PHRASE"
 
 openssl x509 -req -sha256 \
   -days $DURATION \
-  -in ./$DOMAIN/cert.csr \
-  -CA ./$DOMAIN/ca.pem \
-  -CAkey ./$DOMAIN/ca-key.pem \
-  -out ./$DOMAIN/cert.pem \
-  -extfile ./$DOMAIN/extfile.cnf \
+  -in ./$HD/cert.csr \
+  -CA ./$HD/ca.pem \
+  -CAkey ./$HD/ca-key.pem \
+  -out ./$HD/cert.pem \
+  -extfile ./$HD/extfile.cnf \
   -CAcreateserial || throw_error
 
-cat ./$DOMAIN/cert.pem > ./$DOMAIN/fullchain.pem
-cat ./$DOMAIN/ca.pem >> ./$DOMAIN/fullchain.pem
+cat ./$HD/cert.pem > ./$HD/fullchain.pem
+cat ./$HD/ca.pem >> ./$HD/fullchain.pem
+
+cp ./$HD/ca.pem ./$HD/ca.crt
 
 # Optional step
 echo
 info "VERIFIKASI CA FILE"
 
 openssl verify \
-  -CAfile ./$DOMAIN/ca.pem ./$DOMAIN/cert.pem || throw_error
+  -CAfile ./$HD/ca.pem ./$HD/cert.pem || throw_error
 
 # End
 echo
 info "SELESAI"
-echo "key=$DOMAIN/cert-key.pem"
-echo "csr/cert=$DOMAIN/fullchain.pem"
+echo "ca=$HD/ca.crt"
+echo "key=$HD/cert-key.pem"
+echo "cert=$HD/fullchain.pem"
 echo
 echo "AGAR PROTOKOL HTTPS TIDAK DICORET OLEH BROWSER"
 echo "LANGKAH TERAKHIR, MASUKKAN SERTIFIKAT KE DALAM BROWSER"

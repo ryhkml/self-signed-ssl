@@ -2,8 +2,8 @@
 https://www.openssl.org
 
 ### Cara Penggunaan
-  1. `./run.sh <DOMAIN> <DAYS>`
-  2. `sudo cp ./<DOMAIN>/ca.pem /usr/local/share/ca-certificates/ca.crt`
+  1. `./run.sh <HOSTNAME/DOMAIN> <DAYS>`
+  2. `sudo cp ./<HOSTNAME/DOMAIN>/ca.pem /usr/local/share/ca-certificates/ca.crt`
   3. `sudo update-ca-certificates`
   4. `masukkan sertifikat ke dalam browser`
 

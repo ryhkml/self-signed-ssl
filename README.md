@@ -2,9 +2,9 @@
 https://www.openssl.org
 
 ### Cara Pengunaan
-`./run.sh <HOSTNAME/DOMAIN> <DURATION>`
-  - `HOSTNAME/DOMAIN`: Nama Hostname atau Domain
-  - `DURATION`: Berapa lama sertifikat akan valid dalam hari
+  1. `wget https://raw.githubusercontent.com/ryhkml/self-signed-ssl/main/run.sh -O run.sh`
+  2. `chmod +x run.sh`
+  3. `./run.sh <HOSTNAME/DOMAIN> <DURATION>`
 
 ### Validasi HTTPS (localhost)
   1. `sudo cp ./<HOSTNAME/DOMAIN>/ca.crt /usr/local/share/ca-certificates/ca.crt`

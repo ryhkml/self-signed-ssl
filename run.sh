@@ -100,5 +100,5 @@ openssl verify \
 # End
 echo
 info "SELESAI"
-echo "LANGKAH TERAKHIR, LAKUKAN VALIDASI CLIENT SERTIFIKAT"
+info "LANGKAH TERAKHIR, LAKUKAN VALIDASI CLIENT SERTIFIKAT"
 link "https://github.com/ryhkml/self-signed-ssl#validasi-sertifikat"

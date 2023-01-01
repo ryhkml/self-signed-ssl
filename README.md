@@ -6,13 +6,20 @@ Sumber https://www.openssl.org
   2. `chmod +x run.sh`
   3. `./run.sh <HOSTNAME/DOMAIN> <DURATION>`
 
-### Validasi HTTPS (localhost)
-  1. `sudo cp ./<HOSTNAME/DOMAIN>/ca.crt /usr/local/share/ca-certificates/ca.crt`
-  2. `sudo update-ca-certificates`\
-      &nbsp; **Menghapus ca.crt (jika diperlukan)**\
-      &nbsp; 2.1. `sudo rm -rf /usr/local/share/ca-certificates/ca.crt`\
-      &nbsp; 2.2. `sudo update-ca-certificates --fresh`
-  3. agar protokol HTTPS tidak dicoret oleh browser, masukkan sertifikat ke dalam browser
+### Validasi Sertifikat
+  - **Browser**
+    1. `sudo cp ./<HOSTNAME/DOMAIN>/ca.crt /usr/local/share/ca-certificates/ca.crt`
+    2. `sudo update-ca-certificates`
+    3. masukkan `ca.crt` melalui pengaturan sertifikat browser
+        - **Menghapus ca.crt (jika diperlukan)**
+          1. `sudo rm -rf /usr/local/share/ca-certificates/ca.crt`
+          2. `sudo update-ca-certificates --fresh`
+  - **Postman**
+    - masukkan `ca.crt` melalui *settings*, kunjungi https://learning.postman.com/docs/sending-requests/certificates
+  - **Insomnia**
+    - masukkan `ca.crt` melalui *document settings or collection settings*, kunjungi https://docs.insomnia.rest/insomnia/client-certificates
+  - **curl**
+    - `curl --cacert <PATH:TO:ca.crt> -X POST https://...`
 
 ### Input TLS/SSL (backend/database)
   - `ca = ca.crt`

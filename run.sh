@@ -100,15 +100,5 @@ openssl verify \
 # End
 echo
 info "SELESAI"
-echo "ca=$HD/ca.crt"
-echo "key=$HD/cert-key.pem"
-echo "cert=$HD/fullchain.pem"
-echo
-echo "AGAR PROTOKOL HTTPS TIDAK DICORET OLEH BROWSER"
-echo "LANGKAH TERAKHIR, MASUKKAN SERTIFIKAT KE DALAM BROWSER"
-echo
-echo "Google Chrome"
-link "https://support.google.com/chrome/a/answer/3505249?hl=en"
-echo
-echo "Mozilla Firefox"
-link "https://docs.vmware.com/en/VMware-Adapter-for-SAP-Landscape-Management/2.1.0/Installation-and-Administration-Guide-for-VLA-Administrators/GUID-0CED691F-79D3-43A4-B90D-CD97650C13A0.html"
+echo "LANGKAH TERAKHIR, LAKUKAN VALIDASI CLIENT SERTIFIKAT"
+link "https://github.com/ryhkml/self-signed-ssl#validasi-sertifikat"

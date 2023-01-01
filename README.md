@@ -7,19 +7,20 @@ Sumber https://www.openssl.org
   3. `./run.sh <HOSTNAME/DOMAIN> <DURATION>`
 
 ### Validasi Sertifikat
-  - **Browser**
-    1\. `sudo cp ./<HOSTNAME/DOMAIN>/ca.crt /usr/local/share/ca-certificates/ca.crt`
-    2\. `sudo update-ca-certificates`
-    3\. masukkan `ca.crt` melalui pengaturan sertifikat browser
-      - **Menghapus ca.crt (jika diperlukan)**
-        1\. `sudo rm -rf /usr/local/share/ca-certificates/ca.crt`
-        2\. `sudo update-ca-certificates --fresh`
-  - **Postman**
-    1\. masukkan `ca.crt` melalui *settings*, kunjungi https://learning.postman.com/docs/sending-requests/certificates
-  - **Insomnia**
-    1\. masukkan `ca.crt` melalui *document settings or collection settings*, kunjungi https://docs.insomnia.rest/insomnia/client-certificates
-  - **curl**
-    1\. `curl --cacert <PATH:TO:ca.crt> -X POST https://...`
+
+**Browser**
+  1. `sudo cp ./<HOSTNAME/DOMAIN>/ca.crt /usr/local/share/ca-certificates/ca.crt`
+  2. `sudo update-ca-certificates`
+  3. masukkan `ca.crt` melalui pengaturan sertifikat browser
+      
+**Postman**
+  - masukkan `ca.crt` melalui pengaturan, kunjungi https://learning.postman.com/docs/sending-requests/certificates
+
+**Insomnia**
+  - masukkan `ca.crt` melalui pengaturan dokumen, kunjungi https://docs.insomnia.rest/insomnia/client-certificates
+
+**curl**
+  - `curl --cacert <PATH:TO:ca.crt> -X POST https://...`
 
 ### Input TLS/SSL (backend/database)
   - `ca = ca.crt`
@@ -32,3 +33,7 @@ Sumber https://www.openssl.org
 
 ### Contoh Redis TLS/SSL Konfigurasi
 ![Redis 6 Config](SAMPLE3.png)
+
+### Menghapus ca.crt (jika diperlukan)
+  1. `sudo rm -rf /usr/local/share/ca-certificates/ca.crt`
+  2. `sudo update-ca-certificates --fresh`

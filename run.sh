@@ -34,7 +34,7 @@ error() {
 
 throw_error() {
   error "TERJADI KESALAHAN"
-  rm -rf ./$HD
+  rm -rf list/$HD
   exit 1
 }
 
@@ -43,7 +43,7 @@ info "MULAI"
 
 openssl version
 
-mkdir $HD
+mkdir list/$HD
 
 echo
 info "BUAT PASSWORD PEM PHRASE, TUNGGU SEBENTAR..."
@@ -51,7 +51,7 @@ info "BUAT PASSWORD PEM PHRASE, TUNGGU SEBENTAR..."
 sleep 1s
 
 openssl genrsa -aes256 \
-  -out ./$HD/ca-key.pem \
+  -out list/$HD/ca-key.pem \
   4096 || throw_error
 
 echo
@@ -59,43 +59,45 @@ info "VERIFIKASI KEMBALI PASSWORD PEM PHRASE"
 
 openssl req -new -x509 -sha256 \
   -days $DURATION \
-  -key ./$HD/ca-key.pem \
-  -out ./$HD/ca.pem || throw_error
+  -key list/$HD/ca-key.pem \
+  -out list/$HD/ca.pem || throw_error
 
 openssl genrsa \
-  -out ./$HD/cert-key.pem \
+  -out list/$HD/cert-key.pem \
   4096 || throw_error
 
 openssl req -new -sha256 \
   -subj "/CN=$HD" \
-  -key ./$HD/cert-key.pem \
-  -out ./$HD/cert.csr || throw_error
+  -key list/$HD/cert-key.pem \
+  -out list/$HD/cert.csr || throw_error
 
-echo "subjectAltName=DNS:$HD" > ./$HD/extfile.cnf
+echo "subjectAltName=DNS:$HD" > list/$HD/extfile.cnf
 
 echo
 info "OK, VERIFIKASI KEMBALI PASSWORD PEM PHRASE"
 
 openssl x509 -req -sha256 \
   -days $DURATION \
-  -in ./$HD/cert.csr \
-  -CA ./$HD/ca.pem \
-  -CAkey ./$HD/ca-key.pem \
-  -out ./$HD/cert.pem \
-  -extfile ./$HD/extfile.cnf \
+  -in list/$HD/cert.csr \
+  -CA list/$HD/ca.pem \
+  -CAkey list/$HD/ca-key.pem \
+  -out list/$HD/cert.pem \
+  -extfile list/$HD/extfile.cnf \
   -CAcreateserial || throw_error
 
-cat ./$HD/cert.pem > ./$HD/fullchain.pem
-cat ./$HD/ca.pem >> ./$HD/fullchain.pem
+cat list/$HD/cert.pem > list/$HD/fullchain.pem
+cat list/$HD/ca.pem >> list/$HD/fullchain.pem
 
-cp ./$HD/ca.pem ./$HD/ca.crt
+cp list/$HD/ca.pem list/$HD/ca.crt
 
 # Optional step
 echo
 info "VERIFIKASI CA FILE"
 
 openssl verify \
-  -CAfile ./$HD/ca.pem ./$HD/cert.pem || throw_error
+  -CAfile list/$HD/ca.pem list/$HD/cert.pem || throw_error
+
+chmod 0444 list/$HD/*
 
 # End
 echo

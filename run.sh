@@ -71,7 +71,7 @@ openssl req -new -sha256 \
   -key list/$HD/cert-key.pem \
   -out list/$HD/cert.csr || throw_error
 
-echo "subjectAltName=DNS:$HD" > list/$HD/extfile.cnf
+echo "subjectAltName=DNS:localhost,DNS:$HD,IP:127.0.0.1" > list/$HD/extfile.cnf
 
 echo
 info "OK, VERIFIKASI KEMBALI PASSWORD PEM PHRASE"

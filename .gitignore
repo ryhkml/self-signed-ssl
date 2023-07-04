@@ -2,6 +2,7 @@
 
 tls/*
 !tls/.gitkeep
+tmp/
 
 test
 note.txt

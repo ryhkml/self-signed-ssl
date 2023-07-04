@@ -2,8 +2,8 @@
 
 set -e
 
-rm -rf /tmp/self-signed-ssl
-mkdir /tmp/self-signed-ssl
+rm -rf ./tmp
+mkdir -p ./tmp/self-signed-ssl
 
 function bold {
     echo -e "\033[1m$1\033[0m"
@@ -51,9 +51,9 @@ if [ -n "$DNS_NAME" ]; then
     DNS=$(echo $DNS_NAME | awk '{print tolower($0)}')
     ARR_DNS=($DNS)
     for OUTPUT in ${ARR_DNS[@]}; do
-        echo -n "DNS:$OUTPUT," >> /tmp/self-signed-ssl/dns
+        echo -n "DNS:$OUTPUT," >> ./tmp/self-signed-ssl/dns
     done
-    DNS=$(cat /tmp/self-signed-ssl/dns | head -c -1)
+    DNS=$(cat ./tmp/self-signed-ssl/dns | head -c -1)
 else
     DNS="DNS:$CN"
 fi
@@ -69,9 +69,9 @@ IP=
 if [ -n "$IP_ADDR" ]; then
     ARR_IP=($IP_ADDR)
     for OUTPUT in ${ARR_IP[@]}; do
-        echo -n "IP:$OUTPUT," >> /tmp/self-signed-ssl/ip
+        echo -n "IP:$OUTPUT," >> ./tmp/self-signed-ssl/ip
     done
-    IP=$(cat /tmp/self-signed-ssl/ip | head -c -1)
+    IP=$(cat ./tmp/self-signed-ssl/ip | head -c -1)
 fi
 
 # Certificate active period
@@ -179,7 +179,7 @@ find ./tls/$CN -type f \( -name "ca-key.pem" \
     -o -name "extfile.cnf" \
     -o -name "passphrase.txt" \) -exec chmod 400 {} \;
 
-rm -rf /tmp/self-signed-ssl
+rm -rf ./tmp
 
 echo
 echo "DONE!"

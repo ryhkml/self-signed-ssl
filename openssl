@@ -18,7 +18,7 @@ function error {
 }
 
 echo
-bold "Create a certificate by using OpenSSL and securing your internal network with TLSv1.3"
+bold "Create a certificate by using OpenSSL and secure your internal network with TLSv1.3"
 
 # CN according to RFC1123 or the Hostname of the Docker Container
 # Visit - https://www.rfc-editor.org/rfc/rfc1123

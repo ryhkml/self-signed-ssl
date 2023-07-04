@@ -1,0 +1,185 @@
+#!/bin/bash
+
+set -e
+
+rm -rf /tmp/self-signed-ssl
+mkdir /tmp/self-signed-ssl
+
+function bold {
+    echo -e "\033[1m$1\033[0m"
+}
+
+function info {
+    echo -e "\033[0;32m\033[1m$1\033[0m"
+}
+
+function error {
+    echo -e "\033[0;31m$1\033[0m"
+}
+
+echo
+bold "Create a certificate by using OpenSSL and securing your internal network with TLSv1.3"
+
+# CN according to RFC1123 or the Hostname of the Docker Container
+# Visit - https://www.rfc-editor.org/rfc/rfc1123
+echo
+info "Common name (CN)"
+echo "Common name according to RFC1123 or Hostname of the Docker Container. Visit https://www.rfc-editor.org/rfc/rfc1123"
+read -p ">  " COMMON_NAME
+
+if [ -z $COMMON_NAME ]; then
+    error "ERROR: Invalid common name"
+    exit 1
+fi
+
+CN=$(echo $COMMON_NAME | awk '{print tolower($0)}')
+
+if [ -d "./tls/$CN" ]; then
+    error "ERROR: Directory ./tls/$CN is exist"
+    exit 1
+fi
+
+# DNS
+echo
+info "DNS - enter to skip"
+echo "DNS same as (CN) or wildcard *.example.com. Use space for more than one DNS"
+echo "Default: $CN"
+read -p ">  " DNS_NAME
+DNS=
+
+if [ -n "$DNS_NAME" ]; then
+    DNS=$(echo $DNS_NAME | awk '{print tolower($0)}')
+    ARR_DNS=($DNS)
+    for OUTPUT in ${ARR_DNS[@]}; do
+        echo -n "DNS:$OUTPUT," >> /tmp/self-signed-ssl/dns
+    done
+    DNS=$(cat /tmp/self-signed-ssl/dns | head -c -1)
+else
+    DNS="DNS:$CN"
+fi
+
+# IP
+echo
+info "IP - enter to skip"
+echo "e.g. Your internal service (Web, API, or Database) IP. Use space for more than one IP"
+echo "Default: EMPTY"
+read -p ">  " IP_ADDR
+IP=
+
+if [ -n "$IP_ADDR" ]; then
+    ARR_IP=($IP_ADDR)
+    for OUTPUT in ${ARR_IP[@]}; do
+        echo -n "IP:$OUTPUT," >> /tmp/self-signed-ssl/ip
+    done
+    IP=$(cat /tmp/self-signed-ssl/ip | head -c -1)
+fi
+
+# Certificate active period
+echo
+info "Certificate duration - enter to skip"
+echo "Certificate active period in days"
+echo "Default: 365"
+read -p " > " DAYS
+DURATION=${DAYS:=365}
+
+if ! echo $DURATION | grep -qE "^[0-9]+$"; then
+    error "ERROR: Invalid certificate duration"
+    exit 1
+fi
+
+# Country code
+# Country code according to Alpha-2 Code
+# Visit - https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+echo
+info "Country Code (C) - enter to skip"
+echo "Country code according to Alpha-2 Code. Visit https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
+echo "Default: US"
+read -p ">  " COUNTRY_CODE
+C=
+
+if [ -n "$COUNTRY_CODE" ]; then
+    C=$(echo $COUNTRY_CODE | awk '{print toupper($0)}')
+else
+    C="US"
+fi
+
+# State
+echo
+info "State (ST) - enter to skip"
+echo "State or province name"
+echo "Default: EMPTY"
+read -p ">  " STATE
+
+# City
+echo
+info "City (L) - enter to skip"
+echo "Default: EMPTY"
+read -p ">  " CITY
+
+# Organization name
+echo
+info "Organization name (O) - enter to skip"
+echo "Default: EMPTY"
+read -p ">  " ORGANIZATION_NAME
+
+# Organization name
+echo
+info "Organization unit name (OU) - enter to skip"
+echo "Default: EMPTY"
+read -p ">  " ORGANIZATION_UNIT
+echo
+echo "Please wait..."
+echo
+
+mkdir -p ./tls/$CN
+
+PASSPHRASE=$(cat /proc/sys/kernel/random/uuid | sed 's/[-]//g' | head -c 32; echo;)
+
+openssl genrsa -aes256 -out ./tls/$CN/ca-key.pem -passout "pass:$PASSPHRASE" 4096
+openssl req -new -x509 -sha256 \
+    -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
+    -days $DURATION -passin "pass:$PASSPHRASE" \
+    -key ./tls/$CN/ca-key.pem \
+    -out ./tls/$CN/ca.pem
+openssl genrsa -out ./tls/$CN/cert-key.pem 4096
+openssl req -new -sha256 -subj "/CN=$CN" -key ./tls/$CN/cert-key.pem -out ./tls/$CN/cert.csr
+
+echo -n "$PASSPHRASE" > ./tls/$CN/passphrase.txt
+
+echo "extendedKeyUsage = clientAuth" > ./tls/$CN/extfile.cnf
+
+if [ -z $IP ]; then
+    echo -n "subjectAltName=$DNS" >> ./tls/$CN/extfile.cnf
+else
+    echo -n "subjectAltName=$DNS,$IP" >> ./tls/$CN/extfile.cnf
+fi
+
+openssl x509 -req -sha256 \
+    -days $DURATION \
+    -in ./tls/$CN/cert.csr \
+    -CA ./tls/$CN/ca.pem \
+    -CAkey ./tls/$CN/ca-key.pem \
+    -out ./tls/$CN/cert.pem \
+    -extfile ./tls/$CN/extfile.cnf \
+    -passin "pass:$PASSPHRASE" \
+    -CAcreateserial
+
+cat ./tls/$CN/cert.pem > ./tls/$CN/fullchain.pem
+cat ./tls/$CN/ca.pem >> ./tls/$CN/fullchain.pem
+
+cp ./tls/$CN/ca.pem ./tls/$CN/ca.crt
+
+find ./tls/$CN -type f \( -name "ca.crt" \
+    -o -name "ca.pem" \
+    -o -name "cert.csr" \
+    -o -name "cert-key.pem" \
+    -o -name "cert.pem" \
+    -o -name "fullchain.pem" \) -exec chmod 444 {} \;
+find ./tls/$CN -type f \( -name "ca-key.pem" \
+    -o -name "extfile.cnf" \
+    -o -name "passphrase.txt" \) -exec chmod 400 {} \;
+
+rm -rf /tmp/self-signed-ssl
+
+echo
+echo "DONE!"

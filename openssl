@@ -26,7 +26,7 @@ echo
 info "Common name (CN)" " - press enter to skip"
 echo "Common name according to RFC1123 or hostname of the Docker Container. Visit https://www.rfc-editor.org/rfc/rfc1123"
 echo "Default: localhost"
-read -p ">  " COMMON_NAME
+read -r -p ">  " COMMON_NAME
 CN=${COMMON_NAME:=localhost}
 
 if [ "$CN" != "localhost" ]; then
@@ -43,14 +43,14 @@ echo
 info "DNS" " - press enter to skip"
 echo "DNS same as (CN) or wildcard *.example.com. Use space for more than one DNS"
 echo "Default: $CN"
-read -p ">  " DNS_NAME
+read -r -p ">  " DNS_NAME
 DNS=
 
 if [ -n "$DNS_NAME" ]; then
     DNS=$(echo $DNS_NAME | awk '{print tolower($0)}')
     ARR_DNS=($DNS)
     for OUTPUT in ${ARR_DNS[@]}; do
-        echo -n "DNS:$OUTPUT," >> ./tmp/self-signed-ssl/dns
+        sleep 0.1; echo -n "DNS:$OUTPUT," >> ./tmp/self-signed-ssl/dns &
     done
     DNS=$(cat ./tmp/self-signed-ssl/dns | head -c -1)
 else
@@ -62,13 +62,13 @@ echo
 info "IP" " - press enter to skip"
 echo "e.g. Your internal service (Web, API, or Database) IP. Use space for more than one IP"
 echo "Default: EMPTY"
-read -p ">  " IP_ADDR
+read -r -p ">  " IP_ADDR
 IP=
 
 if [ -n "$IP_ADDR" ]; then
     ARR_IP=($IP_ADDR)
     for OUTPUT in ${ARR_IP[@]}; do
-        echo -n "IP:$OUTPUT," >> ./tmp/self-signed-ssl/ip
+        sleep 0.1; echo -n "IP:$OUTPUT," >> ./tmp/self-signed-ssl/ip &
     done
     IP=$(cat ./tmp/self-signed-ssl/ip | head -c -1)
 fi
@@ -78,10 +78,10 @@ echo
 info "Certificate duration" " - press enter to skip"
 echo "Certificate active period in days"
 echo "Default: 365"
-read -p ">  " DAYS
+read -r -p ">  " DAYS
 DURATION=${DAYS:=365}
 
-if ! echo $DURATION | grep -qE "^[0-9]+$"; then
+if ! echo "$DURATION" | grep -qE "^[0-9]+$"; then
     error "ERROR: Invalid certificate duration"
     exit 1
 fi
@@ -93,7 +93,7 @@ echo
 info "Country Code (C)" " - press enter to skip"
 echo "Country code according to Alpha-2 Code. Visit https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2"
 echo "Default: US"
-read -p ">  " COUNTRY_CODE
+read -r -p ">  " COUNTRY_CODE
 C=${COUNTRY_CODE:=US}
 
 if [ "$C" != "US" ]; then
@@ -105,25 +105,25 @@ echo
 info "State (ST)" " - press enter to skip"
 echo "State or province name"
 echo "Default: EMPTY"
-read -p ">  " STATE
+read -r -p ">  " STATE
 
 # City
 echo
 info "City (L)" " - press enter to skip"
 echo "Default: EMPTY"
-read -p ">  " CITY
+read -r -p ">  " CITY
 
 # Organization name
 echo
 info "Organization name (O)" " - press enter to skip"
 echo "Default: EMPTY"
-read -p ">  " ORGANIZATION_NAME
+read -r -p ">  " ORGANIZATION_NAME
 
 # Organization name
 echo
 info "Organization unit name (OU)" " - press enter to skip"
 echo "Default: EMPTY"
-read -p ">  " ORGANIZATION_UNIT
+read -r -p ">  " ORGANIZATION_UNIT
 
 echo
 echo "Please wait..."
@@ -133,21 +133,23 @@ mkdir -p ./tls/$CN
 
 PASSPHRASE=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
-openssl genrsa -aes256 -out ./tls/$CN/ca-key.pem -passout "pass:$PASSPHRASE" 4096
+openssl ecparam -genkey -name secp384r1 -out ./tls/$CN/ca-key.pem
 openssl req -new -x509 -sha256 \
     -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
     -days $DURATION -passin "pass:$PASSPHRASE" \
     -key ./tls/$CN/ca-key.pem \
     -out ./tls/$CN/ca.pem
-openssl genrsa -out ./tls/$CN/cert-key.pem 4096
-openssl req -new -sha256 -subj "/CN=$CN" -key ./tls/$CN/cert-key.pem -out ./tls/$CN/cert.csr
 
-echo "extendedKeyUsage = clientAuth" > ./tls/$CN/extfile.cnf
+openssl ecparam -genkey -name secp384r1 -out ./tls/$CN/cert-key.pem
+openssl req -new -sha256 \
+    -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
+    -key ./tls/$CN/cert-key.pem \
+    -out ./tls/$CN/cert.csr
 
 if [ -n "$IP" ]; then
-    echo -n "subjectAltName=$DNS,$IP" >> ./tls/$CN/extfile.cnf
+    echo -n "subjectAltName=$DNS,$IP" > ./tls/$CN/extfile.cnf
 else
-    echo -n "subjectAltName=$DNS" >> ./tls/$CN/extfile.cnf
+    echo -n "subjectAltName=$DNS" > ./tls/$CN/extfile.cnf
 fi
 
 openssl x509 -req -sha256 \

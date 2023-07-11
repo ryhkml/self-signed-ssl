@@ -38,21 +38,30 @@ if [ -d "./tls/$CN" ]; then
     exit 1
 fi
 
+# Key size
+echo
+info "Key size ECDSA" " - press enter to skip"
+echo "Commonly used key sizes for ECDSA include secp256r1, secp384r1, or secp521r1"
+echo "Default secp256r1"
+read -r -p ">  " KEY_SIZE
+SIZE=${KEY_SIZE:=secp256r1}
+
 # DNS
 echo
 info "DNS" " - press enter to skip"
-echo "DNS same as (CN) or wildcard *.example.com. Use space for more than one DNS"
+echo "DNS same as (CN) or wildcard *.example.com. Use \",\" for more than one DNS"
 echo "Default: $CN"
 read -r -p ">  " DNS_NAME
 DNS=
 
 if [ -n "$DNS_NAME" ]; then
     DNS=$(echo $DNS_NAME | awk '{print tolower($0)}')
-    ARR_DNS=($DNS)
-    for OUTPUT in ${ARR_DNS[@]}; do
+    ARR_DNS=$(echo $DNS | tr ',' '\n')
+    for OUTPUT in $ARR_DNS; do
         sleep 0.1; echo -n "DNS:$OUTPUT," >> ./tmp/self-signed-ssl/dns &
     done
-    DNS=$(cat ./tmp/self-signed-ssl/dns | head -c -1)
+    echo -n $(cat ./tmp/self-signed-ssl/dns | head -c -1) > ./tmp/self-signed-ssl/dns
+    DNS=$(cat ./tmp/self-signed-ssl/dns)
 else
     DNS="DNS:$CN"
 fi
@@ -60,17 +69,18 @@ fi
 # IP
 echo
 info "IP" " - press enter to skip"
-echo "e.g. Your internal service (Web, API, or Database) IP. Use space for more than one IP"
+echo "e.g. Your internal service (Web, API, or Database) IP. Use \",\" for more than one IP"
 echo "Default: EMPTY"
 read -r -p ">  " IP_ADDR
 IP=
 
 if [ -n "$IP_ADDR" ]; then
-    ARR_IP=($IP_ADDR)
-    for OUTPUT in ${ARR_IP[@]}; do
+    ARR_IP=$(echo $IP_ADDR | tr ',' '\n')
+    for OUTPUT in $ARR_IP; do
         sleep 0.1; echo -n "IP:$OUTPUT," >> ./tmp/self-signed-ssl/ip &
     done
-    IP=$(cat ./tmp/self-signed-ssl/ip | head -c -1)
+    echo -n $(cat ./tmp/self-signed-ssl/ip | head -c -1) > ./tmp/self-signed-ssl/ip
+    IP=$(cat ./tmp/self-signed-ssl/ip)
 fi
 
 # Certificate active period
@@ -133,14 +143,14 @@ mkdir -p ./tls/$CN
 
 PASSPHRASE=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
-openssl ecparam -genkey -name secp384r1 -out ./tls/$CN/ca-key.pem
+openssl ecparam -genkey -name $SIZE -out ./tls/$CN/ca-key.pem
 openssl req -new -x509 -sha256 \
     -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
     -days $DURATION -passin "pass:$PASSPHRASE" \
     -key ./tls/$CN/ca-key.pem \
     -out ./tls/$CN/ca.pem
 
-openssl ecparam -genkey -name secp384r1 -out ./tls/$CN/cert-key.pem
+openssl ecparam -genkey -name $SIZE -out ./tls/$CN/cert-key.pem
 openssl req -new -sha256 \
     -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
     -key ./tls/$CN/cert-key.pem \

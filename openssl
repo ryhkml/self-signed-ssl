@@ -46,6 +46,16 @@ echo "Default secp256r1"
 read -r -p ">  " KEY_SIZE
 SIZE=${KEY_SIZE:=secp256r1}
 
+case "$SIZE" in
+    "secp256r1" | "secp256r1" | "secp256r1")
+        echo -n
+        ;;
+    *)
+        error "Invalid key size"
+        exit 1
+        ;;
+esac
+
 # DNS
 echo
 info "DNS" " - press enter to skip"

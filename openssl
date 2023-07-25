@@ -2,9 +2,6 @@
 
 set -e
 
-rm -rf ./tmp
-mkdir -p ./tmp/self-signed-ssl
-
 function bold {
     echo -e "\033[1m$1\033[0m"
 }
@@ -29,10 +26,6 @@ echo "Default: localhost"
 read -r -p ">  " COMMON_NAME
 CN=${COMMON_NAME:=localhost}
 
-if [ "$CN" != "localhost" ]; then
-    CN=$(echo $COMMON_NAME | awk '{print tolower($0)}')
-fi
-
 if [ -d "./tls/$CN" ]; then
     error "ERROR: Directory ./tls/$CN is exist"
     exit 1
@@ -42,12 +35,12 @@ fi
 echo
 info "Key size ECDSA" " - press enter to skip"
 echo "Commonly used key sizes for ECDSA include secp256r1, secp384r1, or secp521r1"
-echo "Default secp256r1"
+echo "Default: secp256r1"
 read -r -p ">  " KEY_SIZE
 SIZE=${KEY_SIZE:=secp256r1}
 
 case "$SIZE" in
-    "secp256r1" | "secp256r1" | "secp256r1")
+    "secp256r1" | "secp384r1" | "secp521r1")
         echo -n
         ;;
     *)
@@ -62,16 +55,18 @@ info "DNS" " - press enter to skip"
 echo "DNS same as (CN) or wildcard *.example.com. Use \",\" for more than one DNS"
 echo "Default: $CN"
 read -r -p ">  " DNS_NAME
-DNS=
+DNS=""
 
 if [ -n "$DNS_NAME" ]; then
-    DNS=$(echo $DNS_NAME | awk '{print tolower($0)}')
-    ARR_DNS=$(echo $DNS | tr ',' '\n')
+    if ! echo -n "$DNS_NAME" | grep -q ","; then
+        error "Invalid DNS value"
+        exit 1
+    fi
+    ARR_DNS=$(echo -en $DNS_NAME | tr ',' '\n' | tr -d [:blank:])
     for OUTPUT in $ARR_DNS; do
-        sleep 0.1; echo -n "DNS:$OUTPUT," >> ./tmp/self-signed-ssl/dns &
+        DNS+="DNS:$OUTPUT,"
     done
-    echo -n $(cat ./tmp/self-signed-ssl/dns | head -c -1) > ./tmp/self-signed-ssl/dns
-    DNS=$(cat ./tmp/self-signed-ssl/dns)
+    DNS=$(echo -n $DNS | head -c -1)
 else
     DNS="DNS:$CN"
 fi
@@ -82,15 +77,18 @@ info "IP" " - press enter to skip"
 echo "e.g. Your internal service (Web, API, or Database) IP. Use \",\" for more than one IP"
 echo "Default: EMPTY"
 read -r -p ">  " IP_ADDR
-IP=
+IP=""
 
 if [ -n "$IP_ADDR" ]; then
-    ARR_IP=$(echo $IP_ADDR | tr ',' '\n')
+    if ! echo -n "$IP_ADDR" | grep -q ","; then
+        error "Invalid IP value"
+        exit 1
+    fi
+    ARR_IP=$(echo -en $IP_ADDR | tr ',' '\n' | tr -d [:blank:])
     for OUTPUT in $ARR_IP; do
-        sleep 0.1; echo -n "IP:$OUTPUT," >> ./tmp/self-signed-ssl/ip &
+        IP+="IP:$OUTPUT,"
     done
-    echo -n $(cat ./tmp/self-signed-ssl/ip | head -c -1) > ./tmp/self-signed-ssl/ip
-    IP=$(cat ./tmp/self-signed-ssl/ip)
+    IP=$(echo -n $IP | head -c -1)
 fi
 
 # Certificate active period
@@ -101,7 +99,7 @@ echo "Default: 365"
 read -r -p ">  " DAYS
 DURATION=${DAYS:=365}
 
-if ! echo "$DURATION" | grep -qE "^[0-9]+$"; then
+if ! echo -n "$DURATION" | grep -qE "^[0-9]+$"; then
     error "ERROR: Invalid certificate duration"
     exit 1
 fi
@@ -117,7 +115,7 @@ read -r -p ">  " COUNTRY_CODE
 C=${COUNTRY_CODE:=US}
 
 if [ "$C" != "US" ]; then
-    C=$(echo $COUNTRY_CODE | awk '{print toupper($0)}')
+    C=$(echo -n $COUNTRY_CODE | tr [:lower:] [:upper:])
 fi
 
 # State
@@ -215,8 +213,6 @@ find ./tls/$CN -type f \( -name "ca.crt" \
     -o -name "cert.pem" \
     -o -name "fullchain.pem" \
     -o -name "extfile.cnf" \) -exec chmod 400 {} \;
-
-rm -rf ./tmp
 
 echo
 echo "DONE!"

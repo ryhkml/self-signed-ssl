@@ -59,14 +59,14 @@ DNS=""
 
 if [ -n "$DNS_NAME" ]; then
     if ! echo -n "$DNS_NAME" | grep -q ","; then
-        error "Invalid DNS value"
-        exit 1
+        DNS="DNS:$DNS_NAME"
+    else
+        ARR_DNS=$(echo -en $DNS_NAME | tr ',' '\n' | tr -d [:blank:])
+        for OUTPUT in $ARR_DNS; do
+            DNS+="DNS:$OUTPUT,"
+        done
+        DNS=$(echo -n $DNS | head -c -1)
     fi
-    ARR_DNS=$(echo -en $DNS_NAME | tr ',' '\n' | tr -d [:blank:])
-    for OUTPUT in $ARR_DNS; do
-        DNS+="DNS:$OUTPUT,"
-    done
-    DNS=$(echo -n $DNS | head -c -1)
 else
     DNS="DNS:$CN"
 fi
@@ -80,11 +80,15 @@ read -r -p ">  " IP_ADDR
 IP=""
 
 if [ -n "$IP_ADDR" ]; then
-    ARR_IP=$(echo -en $IP_ADDR | tr ',' '\n' | tr -d [:blank:])
-    for OUTPUT in $ARR_IP; do
-        IP+="IP:$OUTPUT,"
-    done
-    IP=$(echo -n $IP | head -c -1)
+    if ! echo -n "$IP_ADDR" | grep -q ","; then
+        IP="IP:$IP_ADDR"
+    else
+        ARR_IP=$(echo -en $IP_ADDR | tr ',' '\n' | tr -d [:blank:])
+        for OUTPUT in $ARR_IP; do
+            IP+="IP:$OUTPUT,"
+        done
+        IP=$(echo -n $IP | head -c -1)
+    fi
 fi
 
 # Certificate active period
@@ -152,7 +156,7 @@ openssl req -new -x509 -sha256 \
     -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
     -days $DURATION -passin "pass:$PASSPHRASE" \
     -key ./tls/$CN/ca-key.pem \
-    -out ./tls/$CN/ca.pem
+    -out ./tls/$CN/ca.pem || rm -rf ./tls/$CN
 
 openssl ecparam -genkey -name $SIZE -out ./tls/$CN/cert-key.pem
 openssl req -new -sha256 \

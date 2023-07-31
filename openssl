@@ -80,10 +80,6 @@ read -r -p ">  " IP_ADDR
 IP=""
 
 if [ -n "$IP_ADDR" ]; then
-    if ! echo -n "$IP_ADDR" | grep -q ","; then
-        error "Invalid IP value"
-        exit 1
-    fi
     ARR_IP=$(echo -en $IP_ADDR | tr ',' '\n' | tr -d [:blank:])
     for OUTPUT in $ARR_IP; do
         IP+="IP:$OUTPUT,"

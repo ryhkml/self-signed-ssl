@@ -196,23 +196,21 @@ cat ./tls/$CN/ca.pem >> ./tls/$CN/fullchain.pem
 cp ./tls/$CN/ca.pem ./tls/$CN/ca.crt
 
 cat <<EOF >./tls/$CN/README
-# PEM PASSPHRASE
+## PEM PASSPHRASE
 $PASSPHRASE
 
-# INITIALIZE SSL/TLS (For your backend or database)
-Import the credentials data
-    - ca = "ca.crt" optional
-    - key = "cert-key.pem" required
-    - cert = "fullchain.pem" required
+## INITIALIZE SSL/TLS
+Import the credentials data:
+    - ca = `ca.crt`
+    - key = `cert-key.pem`
+    - cert = `fullchain.pem`
 
-# VALIDATE REQUEST (For web or API request)
-Import "ca.crt" to validate (HTTPS) communication traffic requests
-    - Browser
-        - Google Chrome = https://docs.vmware.com/en/VMware-Adapter-for-SAP-Landscape-Management/2.1.0/Installation-and-Administration-Guide-for-VLA-Administrators/GUID-D60F08AD-6E54-4959-A272-458D08B8B038.html
-        - Mozilla Firefox = https://docs.vmware.com/en/VMware-Adapter-for-SAP-Landscape-Management/2.1.0/Installation-and-Administration-Guide-for-VLA-Administrators/GUID-0CED691F-79D3-43A4-B90D-CD97650C13A0.html
+## VALIDATE REQUEST
+Import "ca.crt" to validate (HTTPS) communication traffic requests. Visit some of the websites below for instructions on how to use CA authority:
+    - Browser = https://www.quora.com/How-can-a-self-signed-certificate-be-added-to-Chrome-or-Firefox-to-be-trusted-as-a-Certificate-Authority-CA-and-used-for-HTTPS-connections
     - Postman = https://learning.postman.com/docs/sending-requests/certificates
     - Insomnia = https://docs.insomnia.rest/insomnia/client-certificates
-    - cURL = curl --cacert <PATH_TO_ca.crt> https://localhost:9443
+    - curl = `curl --cacert ca.crt https://localhost:8080`
 EOF
 
 find ./tls/$CN -type f \( -name "ca.crt" \

@@ -1,18 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
-function bold {
+bold() {
     echo -e "\033[1m$1\033[0m"
 }
 
-function info {
+info() {
     echo -e "\033[0;32m\033[1m$1\033[0m$2"
 }
 
-function error {
+error() {
     echo -e "\033[0;31m$1\033[0m"
 }
+
+openssl version || error "Please install openssl"
 
 echo
 bold "Create a certificate by using OpenSSL and secure your internal network with TLSv1.3"
@@ -152,6 +154,9 @@ mkdir -p ./tls/$CN
 PASSPHRASE=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
 openssl ecparam -genkey -name $SIZE -out ./tls/$CN/ca-key.pem
+
+sleep 1
+
 openssl req -new -x509 -sha256 \
     -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
     -days $DURATION -passin "pass:$PASSPHRASE" \
@@ -159,16 +164,21 @@ openssl req -new -x509 -sha256 \
     -out ./tls/$CN/ca.pem || rm -rf ./tls/$CN
 
 openssl ecparam -genkey -name $SIZE -out ./tls/$CN/cert-key.pem
+
+sleep 1
+
 openssl req -new -sha256 \
     -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
     -key ./tls/$CN/cert-key.pem \
     -out ./tls/$CN/cert.csr
 
 if [ -n "$IP" ]; then
-    echo -n "subjectAltName=$DNS,$IP" > ./tls/$CN/extfile.cnf
+    echo -e "basicConstraints = CA:FALSE\nsubjectAltName=$DNS,$IP\nkeyUsage = digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth" > ./tls/$CN/extfile.cnf
 else
-    echo -n "subjectAltName=$DNS" > ./tls/$CN/extfile.cnf
+    echo -e "basicConstraints = CA:FALSE\nsubjectAltName=$DNS\nkeyUsage = digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth" > ./tls/$CN/extfile.cnf
 fi
+
+sleep 1
 
 openssl x509 -req -sha256 \
     -days $DURATION \
@@ -212,7 +222,8 @@ find ./tls/$CN -type f \( -name "ca.crt" \
     -o -name "cert-key.pem" \
     -o -name "cert.pem" \
     -o -name "fullchain.pem" \
-    -o -name "extfile.cnf" \) -exec chmod 400 {} \;
+    -o -name "extfile.cnf" \) -exec chmod 444 {} \;
 
 echo
-echo "DONE!"
+echo "Output: ./tls/$CN"
+echo "Done"

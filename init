@@ -3,15 +3,15 @@
 set -e
 
 bold() {
-    echo -e "\033[1m$1\033[0m"
+	echo -e "\033[1m$1\033[0m"
 }
 
 info() {
-    echo -e "\033[0;32m\033[1m$1\033[0m$2"
+	echo -e "\033[0;32m\033[1m$1\033[0m$2"
 }
 
 error() {
-    echo -e "\033[0;31m$1\033[0m"
+	echo -e "\033[0;31m$1\033[0m"
 }
 
 openssl version || error "Please install openssl"
@@ -29,8 +29,8 @@ read -r -p ">  " COMMON_NAME
 CN=${COMMON_NAME:=localhost}
 
 if [ -d "./tls/$CN" ]; then
-    error "ERROR: Directory ./tls/$CN is exist"
-    exit 1
+	error "ERROR: Directory ./tls/$CN is exist"
+	exit 1
 fi
 
 # Key size
@@ -42,13 +42,13 @@ read -r -p ">  " KEY_SIZE
 SIZE=${KEY_SIZE:=secp256r1}
 
 case "$SIZE" in
-    "secp256r1" | "secp384r1" | "secp521r1")
-        echo -n
-        ;;
-    *)
-        error "Invalid key size"
-        exit 1
-        ;;
+	"secp256r1" | "secp384r1" | "secp521r1")
+		echo -n
+		;;
+	*)
+		error "Invalid key size"
+		exit 1
+		;;
 esac
 
 # DNS
@@ -60,17 +60,17 @@ read -r -p ">  " DNS_NAME
 DNS=""
 
 if [ -n "$DNS_NAME" ]; then
-    if ! echo -n "$DNS_NAME" | grep -q ","; then
-        DNS="DNS:$DNS_NAME"
-    else
-        ARR_DNS=$(echo -en $DNS_NAME | tr ',' '\n' | tr -d [:blank:])
-        for OUTPUT in $ARR_DNS; do
-            DNS+="DNS:$OUTPUT,"
-        done
-        DNS=$(echo -n $DNS | head -c -1)
-    fi
+	if ! echo -n "$DNS_NAME" | grep -q ","; then
+		DNS="DNS:$DNS_NAME"
+	else
+		ARR_DNS=$(echo -en "$DNS_NAME" | tr ',' '\n' | tr -d "[:blank:]")
+		for OUTPUT in $ARR_DNS; do
+			DNS+="DNS:$OUTPUT,"
+		done
+		DNS=$(echo -n "$DNS" | head -c -1)
+	fi
 else
-    DNS="DNS:$CN"
+	DNS="DNS:$CN"
 fi
 
 # IP
@@ -82,15 +82,15 @@ read -r -p ">  " IP_ADDR
 IP=""
 
 if [ -n "$IP_ADDR" ]; then
-    if ! echo -n "$IP_ADDR" | grep -q ","; then
-        IP="IP:$IP_ADDR"
-    else
-        ARR_IP=$(echo -en $IP_ADDR | tr ',' '\n' | tr -d [:blank:])
-        for OUTPUT in $ARR_IP; do
-            IP+="IP:$OUTPUT,"
-        done
-        IP=$(echo -n $IP | head -c -1)
-    fi
+	if ! echo -n "$IP_ADDR" | grep -q ","; then
+		IP="IP:$IP_ADDR"
+	else
+		ARR_IP=$(echo -en "$IP_ADDR" | tr ',' '\n' | tr -d "[:blank:]")
+		for OUTPUT in $ARR_IP; do
+			IP+="IP:$OUTPUT,"
+		done
+		IP=$(echo -n "$IP" | head -c -1)
+	fi
 fi
 
 # Certificate active period
@@ -102,8 +102,8 @@ read -r -p ">  " DAYS
 DURATION=${DAYS:=365}
 
 if ! echo -n "$DURATION" | grep -qE "^[0-9]+$"; then
-    error "ERROR: Invalid certificate duration"
-    exit 1
+	error "ERROR: Invalid certificate duration"
+	exit 1
 fi
 
 # Country code
@@ -117,7 +117,7 @@ read -r -p ">  " COUNTRY_CODE
 C=${COUNTRY_CODE:=US}
 
 if [ "$C" != "US" ]; then
-    C=$(echo -n $COUNTRY_CODE | tr [:lower:] [:upper:])
+	C=$(echo -n "$COUNTRY_CODE" | tr "[:lower:]" "[:upper:]")
 fi
 
 # State
@@ -149,79 +149,78 @@ echo
 echo "Please wait..."
 echo
 
-mkdir -p ./tls/$CN
+mkdir -p tls/"$CN"
 
-PASSPHRASE=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
+PASSPHRASE=$(< /dev/urandom tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
-openssl ecparam -genkey -name $SIZE -out ./tls/$CN/ca-key.pem
+openssl ecparam -genkey -name "$SIZE" -out ./tls/"$CN"/ca-key.pem
 
 sleep 1
 
 openssl req -new -x509 -sha256 \
-    -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
-    -days $DURATION -passin "pass:$PASSPHRASE" \
-    -key ./tls/$CN/ca-key.pem \
-    -out ./tls/$CN/ca.pem || rm -rf ./tls/$CN
+	-subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
+	-days "$DURATION" -passin "pass:$PASSPHRASE" \
+	-key tls/"$CN"/ca-key.pem \
+	-out tls/"$CN"/ca.pem || rm -rf ./tls/"$CN"
 
-openssl ecparam -genkey -name $SIZE -out ./tls/$CN/cert-key.pem
+openssl ecparam -genkey -name "$SIZE" -out ./tls/"$CN"/cert-key.pem
 
 sleep 1
 
 openssl req -new -sha256 \
-    -subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
-    -key ./tls/$CN/cert-key.pem \
-    -out ./tls/$CN/cert.csr
+	-subj "/C=$C/ST=$STATE/L=$CITY/O=$ORGANIZATION_NAME/OU=$ORGANIZATION_UNIT/CN=$CN" \
+	-key tls/"$CN"/cert-key.pem \
+	-out tls/"$CN"/cert.csr
 
 if [ -n "$IP" ]; then
-    echo -e "basicConstraints = CA:FALSE\nsubjectAltName=$DNS,$IP\nkeyUsage = digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth" > ./tls/$CN/extfile.cnf
+	echo -e "basicConstraints = CA:FALSE\nsubjectAltName=$DNS,$IP\nkeyUsage = digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth" > tls/"$CN"/extfile.cnf
 else
-    echo -e "basicConstraints = CA:FALSE\nsubjectAltName=$DNS\nkeyUsage = digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth" > ./tls/$CN/extfile.cnf
+	echo -e "basicConstraints = CA:FALSE\nsubjectAltName=$DNS\nkeyUsage = digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth" > tls/"$CN"/extfile.cnf
 fi
 
 sleep 1
 
 openssl x509 -req -sha256 \
-    -days $DURATION \
-    -in ./tls/$CN/cert.csr \
-    -CA ./tls/$CN/ca.pem \
-    -CAkey ./tls/$CN/ca-key.pem \
-    -out ./tls/$CN/cert.pem \
-    -extfile ./tls/$CN/extfile.cnf \
-    -passin "pass:$PASSPHRASE" \
-    -CAcreateserial
+	-days "$DURATION" \
+	-in tls/"$CN"/cert.csr \
+	-CA tls/"$CN"/ca.pem \
+	-CAkey tls/"$CN"/ca-key.pem \
+	-out tls/"$CN"/cert.pem \
+	-extfile tls/"$CN"/extfile.cnf \
+	-passin "pass:$PASSPHRASE" \
+	-CAcreateserial
 
-cat ./tls/$CN/cert.pem > ./tls/$CN/fullchain.pem
-cat ./tls/$CN/ca.pem >> ./tls/$CN/fullchain.pem
+cat tls/"$CN"/cert.pem > tls/"$CN"/fullchain.pem
+cat tls/"$CN"/ca.pem >> tls/"$CN"/fullchain.pem
 
-cp ./tls/$CN/ca.pem ./tls/$CN/ca.crt
+cp tls/"$CN"/ca.pem tls/"$CN"/ca.crt
 
-cat <<EOF >./tls/$CN/README
+tee tls/"$CN"/README.md > /dev/null <<EOF
 ## PEM PASSPHRASE
 $PASSPHRASE
 
 ## INITIALIZE SSL/TLS
 Import the credentials data:
-    - ca = `ca.crt`
-    - key = `cert-key.pem`
-    - cert = `fullchain.pem`
+- ca = ca.crt
+- key = cert-key.pem
+- cert = fullchain.pem
 
 ## VALIDATE REQUEST
 Import "ca.crt" to validate (HTTPS) communication traffic requests. Visit some of the websites below for instructions on how to use CA authority:
-    - Browser = https://www.quora.com/How-can-a-self-signed-certificate-be-added-to-Chrome-or-Firefox-to-be-trusted-as-a-Certificate-Authority-CA-and-used-for-HTTPS-connections
-    - Postman = https://learning.postman.com/docs/sending-requests/certificates
-    - Insomnia = https://docs.insomnia.rest/insomnia/client-certificates
-    - curl = `curl --cacert ca.crt https://localhost:8080`
+- Browser = https://www.quora.com/How-can-a-self-signed-certificate-be-added-to-Chrome-or-Firefox-to-be-trusted-as-a-Certificate-Authority-CA-and-used-for-HTTPS-connections
+- Postman = https://learning.postman.com/docs/sending-requests/certificates
+- Insomnia = https://docs.insomnia.rest/insomnia/client-certificates
+- curl = curl --cacert ca.crt https://localhost:8080
 EOF
 
-find ./tls/$CN -type f \( -name "ca.crt" \
-    -o -name "ca.pem" \
-    -o -name "ca-key.pem" \
-    -o -name "cert.csr" \
-    -o -name "cert-key.pem" \
-    -o -name "cert.pem" \
-    -o -name "fullchain.pem" \
-    -o -name "extfile.cnf" \) -exec chmod 444 {} \;
+find tls/"$CN" -type f \( -name "ca.crt" \
+	-o -name "ca.pem" \
+	-o -name "ca-key.pem" \
+	-o -name "cert.csr" \
+	-o -name "cert-key.pem" \
+	-o -name "cert.pem" \
+	-o -name "fullchain.pem" \
+	-o -name "extfile.cnf" \) -exec chmod 444 {} \;
 
-echo
-echo "Output: ./tls/$CN"
+echo "Output: tls/$CN"
 echo "Done"
